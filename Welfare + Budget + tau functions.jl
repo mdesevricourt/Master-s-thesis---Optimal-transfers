@@ -19,7 +19,8 @@ function budget(;ρ::Real = Default["tax rate"], gw::Real = Default["wage"], e::
     return(ρ * gw * e * p_e_e)
 end
 
-function budgetcons(T::Real, τ::Real; gw = Default["wage"], nw = Default["net wage"], ρ::Real = Default["tax rate"], n_e::Real = Default["n_e"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], λ = Default["Market tightness"])
+function budgetcons(T::Real, τ::Real; gw = Default["wage"], ρ::Real = Default["tax rate"], n_e::Real = Default["n_e"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], λ = Default["Market tightness"])
+    nw = netwage(gw, ρ)
     ω = weights(n_e, p_e_e, p_u_u, λ = λ)
     B = budget(ρ = ρ, gw = gw, e = n_e, p_e_e = p_e_e)
     if (T + (ω[2] + ω[4]) * τ) > B
