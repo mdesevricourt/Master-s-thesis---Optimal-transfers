@@ -4,81 +4,20 @@ using Distributions
 using JLD2
 using LaTeXStrings
 #push!(LOAD_PATH, "C:/Users/Maxime/.julia/v0.6/")
+using utilityfunctions
+using Searcheffort
+
 gr()
 Default = Dict("n_e" => 0.5, "p_e|e" => 0.9, "p_u|u" => 0.9, "wage" => 600.0, "home production" => 50, "Budget" => 300.0, "Market tightness" => 0.8)
+Default["tax rate"] = 0.2
+Default["net wage"] = Default["wage"] * (1 - Default["tax rate"])
 
-function u(c)
-    log(c)
-end
 
-function Welfare(T::Real, τ::Real , e::Real = Default["n_e"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], w::Real = Default["wage"], δ::Real = Default["home production"]; λ::Real =Default["Market tightness"])
+function Welfare(T::Real, τ::Real , e::Real = Default["n_e"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], wb::Real = Default["wage"], wn::Real = Default["net wage"], δ::Real = Default["home production"]; λ::Real =Default["Market tightness"])
     ω = weights(e, p_e_e, p_u_u, λ = λ)
-    return(ω[1] * u(w + T) + ω[2] * u(w + T + τ) + ω[3] * u(δ + T) + ω[4] * u(δ + T + τ) - disut(e))
+    return(ω[1] * u(wn + T) + ω[2] * u(wb + T + τ) + ω[3] * u(δ + T) + ω[4] * u(δ + T + τ) - disut(e))
 end
 
-
-function weights(e::Real, p_e_e::Real, p_u_u::Real; λ::Real = Default["Market tightness"])
-    param = [e, p_e_e, p_u_u, λ]
-    for p in param
-        if p .> 1
-            error("$p if higher than one")
-        end
-        if p .< 0
-            error("$p is lower than zero")
-        end
-    end
-    ω_1 = λ * e * p_e_e
-    ω_2 = λ * e * (1 - p_e_e)
-    ω_3 = (1 - λ * e) * (1 - p_u_u)
-    ω_4 = (1 - λ * e) * p_u_u
-    return([ω_1, ω_2, ω_3,ω_4])
-end
-
-#disutility from search effort
-function disut(e::Real)
- return(e^2)
-end
-
-function disutprime(e::Real)
-    return(2*e)
-end
-function invdisutprime(x::Real)
-    return(1/2 * x)
-end
-
-function expectu(e::Real, T::Real = 0, τ::Real = 0; w::Real = Default["wage"], δ::Real = Default["home production"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], λ::Real = Default["Market tightness"])
-    ω = weights(e, p_e_e, p_u_u; λ = λ)
-    return(ω[1] * u(w + T) + ω[2] * u(w + T + τ) + ω[3] * u(δ + T) + ω[4] * u(δ + T + τ) - disut(e))
-end
-
-
-
-function Optimeffort(T::Real, τ::Real = 0; w::Real = Default["wage"], δ::Real = Default["home production"], p_e_e = Default["p_e|e"], p_u_u = Default["p_u|u"], λ::Real  = Default["Market tightness"])
-    #= I figured that an analytical solution was possible. So I implemented it. There are some weird cases where a numerical solution does stlightly better, probably
-    due to computational approximiations, but the difference is so small it's s barely noticeable. I decided to get rid of this.
-    =#
-    e1 = invdisutprime(λ * (p_e_e * u(w + T) + (1 - p_e_e) * u(w + T + τ) - (1 - p_u_u) * u(δ + T) - p_u_u * u(δ + T + τ)))
-    #enforcing the constraint on e1
-    if e1 > 1
-        e1 = 1
-    elseif e1 < 0
-        e1 = 0
-    end
-
-    #Checking for corner solutions
-
-    if expectu(0, T, τ, w =  w, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(1, T, τ,  w =  w, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
-        if expectu(0, T, τ,  w =  w, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(e1, T, τ, w =  w, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
-            return(0)
-        else
-            return(e1)
-            end
-    elseif expectu(1, T, τ, w =  w, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(e1, T, τ, w =  w, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
-        return(1)
-    else
-        return(e1)
-    end
-end
 
 function budgetcons(T::Real, τ::Real; n_e::Real = Default["n_e"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], B::Real = Default["Budget"], λ = Default["Market tightness"])
     ω = weights(n_e, p_e_e, p_u_u, λ = λ)
