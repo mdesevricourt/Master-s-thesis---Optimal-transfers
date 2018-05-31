@@ -1,62 +1,70 @@
-using Optim
-using Plots, gr()
-using Distributions
+if !("C:/Users/Maxime/.julia/v0.6/" in LOAD_PATH)
+    push!(LOAD_PATH, "C:/Users/Maxime/.julia/v0.6/")
+end
+
+using Optim, Distributions, Plots; gr()
 #using JLD2
 #using LaTeXStrings
-#push!(LOAD_PATH, "C:/Users/Maxime/.julia/v0.6/")
+include("C:/Users/Maxime/Documents/MasterEco/Mémoire/Optimal-Transfers/Utility and cost functions.jl")
+include("C:/Users/Maxime/Documents/MasterEco/Mémoire/Optimal-Transfers/SearchEffortmodule.jl")
+include("C:/Users/Maxime/Documents/MasterEco/Mémoire/Optimal-Transfers/Welfare + Budget + tau functions.jl")
 using utilityfunctions
 using Searcheffort
-using otherfucntions #welfare, budget, and τofT functions
+using otherfunctions #welfare, budget, and τofT functions
 
+Default = Dict("n_e" => 0.5, "p_e|e" => 0.9, "p_u|u" => 0.9, "wage" => 600.0, "home production" => 50, "Budget" => 300.0, "Market tightness" => 0.8)
+Default["tax rate"] = 0.2
 
-function Ω(T::Real; p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], B::Real = Default["Budget"], gw::Real = Default["wage"], δ::Real = Default["home production"], λ = Default["Market tightness"])
-    τ, e = τofT(T, gw = gw, ρ = ρ,  p_e_e = p_e_e, p_u_u = p_u_u, λ = λ)
-    if (T < 0) || (τ < 0) || !budgetcons(T, τ; n_e = e, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ)
+function Ω(T::Real; p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], gw::Real = Default["wage"],  ρ::Real = Default["tax rate"], δ::Real = Default["home production"], λ = Default["Market tightness"])
+    τ, e = τofT(T, gw = gw, ρ = ρ,  p_e_e = p_e_e, p_u_u = p_u_u, δ = δ, λ = λ)
+    if (T < 0) || (τ < 0) || !budgetcons(T, τ; gw = gw, ρ = ρ, n_e = e, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ)
         return(- Inf)
     else
-        return(Welfare(T, τ; e = e, p_e_e = p_e_e, p_u_u = p_u_u, wb = gw, wn = nw, δ = δ, λ = λ))
+        return(Welfare(T, τ; e = e, p_e_e = p_e_e, p_u_u = p_u_u, wb = gw,ρ = ρ, δ = δ, λ = λ))
     end
 end
 
 
 
-function Solve(; p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], w::Real = Default["wage"], δ::Real = Default["home production"], ρ::Real = Default["tax rate"], λ = Default["Market tightness"])
+function Solve(; p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], gw::Real = Default["wage"], δ::Real = Default["home production"], ρ::Real = Default["tax rate"], λ = Default["Market tightness"])
     Param = Dict{String, Real}(
     "p_e|e" => p_e_e,
     "p_u|u" => p_u_u,
-    "wage" => w,
+    "wage" => gw,
     "home production" => δ,
-    "Budget" => float(B),
     "Market tightness" => λ,
     "tax rate" => ρ)
-    Param["net wage"] = Param["wage"] * (1 -  Param["tax rate"])
+    Param["net wage"] = netwage(gw, ρ)
 
     function Obj(T::Real)
-        return(- Ω(T,  p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], B = Param["Budget"], w = Param["wage"], δ = Param["home production"], λ = λ))
+        return(- Ω(T,  gw= gw, ρ = ρ, p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], δ = Param["home production"], λ = λ))
     end
 
-    Results = optimize(Obj, 0, B, Brent())
+    UBT = budget(ρ = ρ, gw = gw, e = 1, p_e_e = p_e_e) #upper bound on T, when everybody works (probablement infaisable car income effect)
+
+    Results = optimize(Obj, 0, UBT, Brent())
 
 
-    W1 = Ω(0, p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], B = Param["Budget"], w = Param["wage"], δ = Param["home production"], λ = λ)
-    W2 = Ω(B, p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], B = Param["Budget"], w = Param["wage"], δ = Param["home production"], λ = λ)
+    W1 = Ω(0, gw= gw, ρ = ρ, p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], δ = Param["home production"], λ = λ)
+    W2 = Ω(UBT, gw= gw, ρ = ρ, p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], δ = Param["home production"], λ = λ)
 
     if W1 >= - Results.minimum
         T = 0
         W = W1
     elseif W2 >= - Results.minimum
-        T = B
+        T = UBT
         W = W2
     else
         T = Results.minimizer
         W = - Results.minimum
     end
 
-    τ, e = τofT(T, w = Param["wage"], δ = Param["home production"], B = Param["Budget"], p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], λ = Param["Market tightness"])
+    τ, e, B = τofT(T, gw = Param["wage"], ρ = ρ, δ = Param["home production"], p_e_e = Param["p_e|e"], p_u_u = Param["p_u|u"], λ = Param["Market tightness"])
     Param["Optimal T"] = T
     Param["Optimal τ"] = τ
     Param["e"] = e
     Param["Total Welfare"] = W
+    Param["Budget"] = B
     return(Param)
 end
 
@@ -77,8 +85,11 @@ end
 
 function p_e_eplots(;lb::Real=0, ub::Real=1)
     p1 = plot(Tofp_e_e, lb, ub, label = "Universal Transfer")
+    info("Universal transfer done")
     plot!(p1, tofp_e_e, lb, ub, label = "Unemployed benefit")
+    info("Unemployement benefit done")
     p2 =  plot(eofp_e_e, lb, ub, label = "search effort")
+    info("search effort done")
     p = plot(p1, p2)
     return(p)
 end
@@ -101,23 +112,26 @@ end
 function p_u_uplots(lb::Real=0, ub::Real=1)
 
     p1 = plot(Tofp_u_u, lb, ub, label = "Universal Transfer")
-    plot!(p1, tofp_u_u, lb, ub, label = "Unemployed benefit")
+    info("Universal transfer done")
+    plot!(p1, tofp_u_u, lb, ub, label = "Unemployment benefit")
+    info("Unemployment benefit done")
     p2 =  plot(eofp_u_u, lb, ub, label = "search effort")
+    info("Search effort done")
     p = plot(p1, p2)
     return(p)
 end
 
 #Wage
 function Tofwage(w::Real)
-    return(Solve(w = w)["Optimal T"])
+    return(Solve(gw = w)["Optimal T"])
 end
 
 function tofwage(w::Real)
-    return(Solve(w = w)["Optimal τ"])
+    return(Solve(gw = w)["Optimal τ"])
 end
 
 function eofwage(w::Real)
-    return(Solve(w = w)["e"])
+    return(Solve(gw = w)["e"])
 end
 
 
@@ -133,27 +147,27 @@ end
 
 #Budget
 
-function TofB(T::Real)
-    return(Solve(B = T)["Optimal T"])
+function Tofρ(T::Real)
+    return(Solve(ρ = T)["Optimal T"])
 end
 
-function tofB(T::Real)
-    return(Solve(B = T)["Optimal τ"])
+function tofρ(T::Real)
+    return(Solve(ρ = T)["Optimal τ"])
 end
 
-function eofB(T::Real)
-    return(Solve(B = T)["e"])
+function eofρ(T::Real)
+    return(Solve(ρ = T)["e"])
 end
 
 
 
-function budgetplot(lb::Real=0, ub::Real=50)
+function taxrateplot(lb::Real=0, ub::Real=1)
 
-    p1 = plot(TofB, lb, ub, label = "Universal Transfer")
+    p1 = plot(Tofρ, lb, ub, label = "Universal Transfer", legend=:inside)
     info("Universal transfer done")
-    plot!(p1, tofB, lb, ub, label = "Unemployment benefit")
+    plot!(p1, tofρ, lb, ub, label = "Unemployment benefit")
     info("Categorical benefit done")
-    p2 =  plot(eofB, lb, ub, label = "Search Effort")
+    p2 =  plot(eofρ, lb, ub, label = "Search Effort")
     info("Search effort done")
     p = plot(p1, p2)
     return(p)
@@ -205,8 +219,11 @@ end
 function homeprodplot(lb::Real=0, ub::Real=Default["wage"])
 
     p1 = plot(Tofdelta, lb, ub, label = "Universal Transfer")
+    info("Universal transfer done")
     plot!(p1, tofdelta, lb, ub, label = "Unemployment benefit")
+    info("Unemployment benefit done")
     p2 =  plot(eofdelta, lb, ub, label = "search effort")
+    info("Searc effort done")
     p = plot(p1, p2)
     return(p)
 end
