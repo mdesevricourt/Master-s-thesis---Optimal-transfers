@@ -32,22 +32,17 @@ function budgetcons(T::Real, τ::Real; gw = Default["wage"], nw = Default["net w
     end
 end
 
-function τofT(T::Real; gw::Real = Default["wage"], ρ = Default["tax rate"], Default["net wage"], δ::Real = Default["home production"], p_e_e = Default["p_e|e"], p_u_u = Default["p_u|u"], λ::Real  = Default["Market tightness"])
-    if T == B
-        return([0, Optimeffort(T, 0; w = w , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ)])
-    end
-    mini = B - T
-    e = 1
-    ω = weights(e, p_e_e, p_u_u, λ = λ)
-    UB = (B - T)/ (ω[2] + ω[4] )
-    τ = mini
+function τofT(T::Real; gw::Real = Default["wage"], ρ::Real = Default["tax rate"], nw::Real = Default["net wage"], δ::Real = Default["home production"], p_e_e = Default["p_e|e"], p_u_u = Default["p_u|u"], λ::Real  = Default["Market tightness"])
+    ω = weights(1, p_e_e, p_u_u, λ = λ)
+    τ = 0
     counter = 0
     lb = 0
     ub = (B - T)/ (ω[2] + ω[4] )
     for i in 1:6
         for t in Array(linspace(lb,ub, 5))
             counter += 1
-            e = Optimeffort(T, t; w = w , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ )
+            e = Optimeffort(T, t; wb = gw, wn = nw , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ )
+            B = budget
             ω = weights(e, p_e_e, p_u_u; λ = λ)
             if t <= (B - T)/ (ω[2] + ω[4] )
                 lb = t
