@@ -1,8 +1,8 @@
 using Optim
 using Plots
 using Distributions
-using JLD2
-using LaTeXStrings
+#using JLD2
+#using LaTeXStrings
 #push!(LOAD_PATH, "C:/Users/Maxime/.julia/v0.6/")
 using utilityfunctions
 using Searcheffort
@@ -37,12 +37,14 @@ function τofT(T::Real; gw::Real = Default["wage"], ρ::Real = Default["tax rate
     τ = 0
     counter = 0
     lb = 0
-    ub = (B - T)/ (ω[2] + ω[4] )
-    for i in 1:6
-        for t in Array(linspace(lb,ub, 5))
+    ub = (budget(ρ = ρ, gw = gw, e = 1, p_e_e = p_e_e) - T)/ (ω[2] + ω[4] )
+    e = 0
+    B = 0
+    while ub - lb > 1
+        for t in [lb, (lb + ub)/2, ub]
             counter += 1
             e = Optimeffort(T, t; wb = gw, wn = nw , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ )
-            B = budget
+            B = budget(ρ = ρ, gw = gw, e = e, p_e_e = p_e_e)
             ω = weights(e, p_e_e, p_u_u; λ = λ)
             if t <= (B - T)/ (ω[2] + ω[4] )
                 lb = t
@@ -53,9 +55,11 @@ function τofT(T::Real; gw::Real = Default["wage"], ρ::Real = Default["tax rate
             end
         end
     end
-    for t in Array(linspace(lb,ub, max(floor(ub - lb), 10)))
+    println(counter)
+    for t in Array(linspace(lb,ub,11))
         counter += 1
-        e = Optimeffort(T, t; w = w , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ )
+        e = Optimeffort(T, t;  wb = gw, wn = nw , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ)
+        B = budget(ρ = ρ, gw = gw, e = e, p_e_e = p_e_e)
         ω = weights(e, p_e_e, p_u_u; λ = λ)
         if t <= (B - T)/ (ω[2] + ω[4] )
             τ = t
@@ -64,7 +68,7 @@ function τofT(T::Real; gw::Real = Default["wage"], ρ::Real = Default["tax rate
             break
         end
     end
-    return([τ, Optimeffort(T, τ; w = w , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ )])
+    return([τ, Optimeffort(T, τ; wb = gw, wn = nw , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ)])
 end
 
 

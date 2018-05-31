@@ -39,3 +39,31 @@ function Optimeffort(T::Real, τ::Real = 0; δ::Real = Default["home production"
 end
 
 end
+
+
+function Optimeffort2(τ::Real, T::Real = 0; δ::Real = Default["home production"], wb::Real = Default["wage"], wn::Real = Default["net wage"], p_e_e = Default["p_e|e"], p_u_u = Default["p_u|u"], λ::Real  = Default["Market tightness"])
+    #= I figured that an analytical solution was possible. So I implemented it. There are some weird cases where a numerical solution does stlightly better, probably
+    due to computational approximiations, but the difference is so small it's s barely noticeable. I decided to get rid of this.
+    =#
+    e1 = invdisutprime(λ * (p_e_e * u(wn + T) + (1 - p_e_e) * u(wb + T + τ) - (1 - p_u_u) * u(δ + T) - p_u_u * u(δ + T + τ)))
+    #enforcing the constraint on e1
+    if e1 > 1
+        e1 = 1
+    elseif e1 < 0
+        e1 = 0
+    end
+
+    #Checking for corner solutions
+
+    if expectu(0, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(1, T, τ,  wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
+        if expectu(0, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(e1, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
+            return(0)
+        else
+            return(e1)
+            end
+    elseif expectu(1, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(e1, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
+        return(1)
+    else
+        return(e1)
+    end
+end
