@@ -26,7 +26,7 @@ function Optimeffort(T::Real, τ::Real = 0; δ::Real = Default["home production"
     #Checking for corner solutions
 
     if expectu(0, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(1, T, τ,  wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
-        if expectu(0, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(e1, T, τ,, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
+        if expectu(0, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ) > expectu(e1, T, τ, wb =  wb, wn = wn, δ = δ, p_e_e =  p_e_e, p_u_u = p_u_u, λ = λ)
             return(0)
         else
             return(e1)

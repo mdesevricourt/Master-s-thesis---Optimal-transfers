@@ -18,9 +18,13 @@ function Welfare(T::Real, τ::Real , e::Real = Default["n_e"], p_e_e::Real = Def
     return(ω[1] * u(wn + T) + ω[2] * u(wb + T + τ) + ω[3] * u(δ + T) + ω[4] * u(δ + T + τ) - disut(e))
 end
 
+function budget(;ρ::Real = Default["tax rate"], gw::Real = Default["wage"], e::Real = 1, p_e_e::Real = Default["p_e|e"])
+    return(ρ * gw * e * p_e_e)
+end
 
-function budgetcons(T::Real, τ::Real; n_e::Real = Default["n_e"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], B::Real = Default["Budget"], λ = Default["Market tightness"])
+function budgetcons(T::Real, τ::Real; gw = Default["wage"], nw = Default["net wage"], ρ::Real = Default["tax rate"], n_e::Real = Default["n_e"], p_e_e::Real = Default["p_e|e"], p_u_u::Real = Default["p_u|u"], B::Real = Default["Budget"], λ = Default["Market tightness"])
     ω = weights(n_e, p_e_e, p_u_u, λ = λ)
+    B = budget(ρ = ρ, gw = gw, e = n_e, p_e_e = p_e_e)
     if (T + (ω[2] + ω[4]) * τ) > B
         return(false)
     else
@@ -28,7 +32,7 @@ function budgetcons(T::Real, τ::Real; n_e::Real = Default["n_e"], p_e_e::Real =
     end
 end
 
-function τofT(T::Real; w::Real = Default["wage"], δ::Real = Default["home production"], B = Default["Budget"], p_e_e = Default["p_e|e"], p_u_u = Default["p_u|u"], λ::Real  = Default["Market tightness"])
+function τofT(T::Real; gw::Real = Default["wage"], ρ = Default["tax rate"], Default["net wage"], δ::Real = Default["home production"], p_e_e = Default["p_e|e"], p_u_u = Default["p_u|u"], λ::Real  = Default["Market tightness"])
     if T == B
         return([0, Optimeffort(T, 0; w = w , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ)])
     end
