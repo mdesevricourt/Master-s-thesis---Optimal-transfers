@@ -163,7 +163,7 @@ end
 
 function taxrateplot(lb::Real=0, ub::Real=1)
 
-    p1 = plot(Tofρ, lb, ub, label = "Universal Transfer", legend=:inside)
+    p1 = plot(Tofρ, lb, ub, label = "Universal Transfer", legend=:bottomright)
     info("Universal transfer done")
     plot!(p1, tofρ, lb, ub, label = "Unemployment benefit")
     info("Categorical benefit done")

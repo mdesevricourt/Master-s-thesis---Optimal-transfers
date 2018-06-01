@@ -39,7 +39,7 @@ function τofT(T::Real; gw::Real = Default["wage"], ρ::Real = Default["tax rate
     ub = (budget(ρ = ρ, gw = gw, e = 1, p_e_e = p_e_e) - T)/ (ω[2] + ω[4] )
     e = 0
     B = 0
-    while ub - lb > 1
+    while ub - lb > 0.1
         for t in [lb, (lb + ub)/2, ub]
             counter += 1
             e = Optimeffort(T, t; wb = gw, wn = nw , δ = δ, p_e_e = p_e_e, p_u_u = p_u_u, λ = λ )
